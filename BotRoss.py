@@ -1,111 +1,116 @@
-# Local Libraries
-from Local.Secrets import BOT_TOKEN
-from Local.PointSystem import PointSystem
-
 # External Libraries
-import json
-import os
+import logging
 import schedule
 import threading
 import time
-import discord
+from os import path, makedirs
 from discord.ext.commands import Bot
-from discord import Member
+from discord import Member, Embed, Color
+from typing import Union
 
+# Local Libraries
+from Local.Secrets import BOT_TOKEN
+from Local.PointSystem import PointSystem
+from Local import JSONHandler
 
+# ----------------------------------------------------------------------------------------------------------------------
+
+# Constants
 BOT_PREFIX = '!'
 DATA_PATH = './Data/'
-POINTS_FILE = DATA_PATH + 'points.json'
+JSON_FILE = DATA_PATH + 'server_table.json'
+BACKUP_TIME = '10:00'
 
-client = Bot(command_prefix=BOT_PREFIX)
+# Variables
+bot = Bot(command_prefix=BOT_PREFIX)
 point_system = PointSystem()
 
+# ----------------------------------------------------------------------------------------------------------------------
 
-# Function will be called after a successful start of the Bot
-@client.event
+# Functions
+
+
+def start_up(data_path, json_file):
+    logging.info('Checking existence of directories and files:')
+    # Checking Folder "Data", if it doesn't exists it gets created
+    if not path.exists(data_path):
+        makedirs(data_path)
+        logging.info('Folder "{}" was created'.format(path.basename(path.dirname(data_path))))
+    else:
+        logging.info('Folder "{}" already exists'.format(path.basename(path.dirname(data_path))))
+
+    # Creating the JSON File for user storage, if it doesn't exists
+    JSONHandler.create_json(json_file)
+
+    # Reading JSON File
+    server_table = JSONHandler.open_json(json_file)
+
+    return server_table
+
+
+# Bot Functions
+
+
+@bot.event
 async def on_ready():
-    print('Sever successfully started!')
-    print('Bot logged in as \'{0.name}\' ({0.id})'.format(client.user))
+    logging.info('Bot Client successfully started!')
+    logging.info('Bot logged in as \'{0.name}\' ({0.id})'.format(bot.user))
 
 
-@client.command(pass_context=True)
-async def points(context, option, amount_points=0, target_user: Member = None):
-    if target_user is None:
-        target_user = context.message.author
+@bot.command(pass_context=True)
+async def points(context, option, arg1: Union[Member, int] = None, arg2: Union[Member, int] = None):
+    target_user = context.message.author
 
-    print('{} {}'.format(option, amount_points))
-    if option == 'add':
-        point_system.add(target_user.id, amount_points)
-    elif option == 'sub':
-        point_system.subtract(target_user.id, amount_points)
-    elif option == 'set':
-        point_system.set(target_user.id, amount_points)
+    if option in ('add', 'sub', 'set'):
+        if arg2 is not None and isinstance(arg2, Member):
+            target_user = arg2
+        point_system.check_and_create_user(target_user)
+
+        if option == 'add':
+            point_system.add_points(target_user.id, arg1)
+        elif option == 'sub':
+            point_system.subtract_points(target_user.id, arg1)
+        elif option == 'set':
+            point_system.set_points(target_user.id, arg1)
+
     elif option == 'show':
+        if arg1 is not None and isinstance(arg1, Member):
+            target_user = arg1
+        point_system.check_and_create_user(target_user)
         user = point_system.get_user(target_user.id)
-        user_info = discord.Embed(color=discord.Color.dark_red())
+        user_info = Embed(color=Color.dark_red())
         user_info.set_author(name=target_user)
         user_info.add_field(name='Points', value=user['points'])
 
-        await client.send_message(context.message.channel, embed=user_info)
+        await context.channel.send(embed=user_info)
+
+# ----------------------------------------------------------------------------------------------------------------------
+# Main
+
+# Setting up the Logging configuration
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%d-%m-%Y %H:%M:%S')
+
+# Creating and setting up a thread, which checks if it is 10:00 to execute the daily backup of json-files
+backup_is_running = threading.Event()
 
 
-print('\nChecking directories and files:')
-if not os.path.exists(DATA_PATH):
-    os.makedirs(DATA_PATH)
-    print('{} was created'.format(os.path.abspath(DATA_PATH)))
-else:
-    print('{} exists'.format(os.path.abspath(DATA_PATH)))
-
-point_system.create_json(POINTS_FILE)
-
-print('\nReading files:')
-point_system.open_json(POINTS_FILE)
-print('Finished loading files.')
-
-
-backup_run = threading.Event()
-
-
-def backup_json():
-    while not backup_run.is_set():
+def backup_handler():
+    while not backup_is_running.is_set():
         schedule.run_pending()
         time.sleep(5)
 
 
-backup_thread = threading.Thread(target=backup_json)
+backup_thread = threading.Thread(target=backup_handler)
 backup_thread.start()
-# schedule.every(1).minute.do(lambda: point_system.save_json(POINTS_FILE))
-schedule.every().day.at("10:00").do(lambda: point_system.save_json(POINTS_FILE))
+schedule.every(1).minutes.do(lambda: JSONHandler.save_json(JSON_FILE, point_system.dictionary))
+# schedule.every().day.at(BACKUP_TIME).do(lambda: JSONHandler.save_json(JSON_FILE, server_table))
 
-client.run(BOT_TOKEN)
+point_system.dictionary = start_up(DATA_PATH, JSON_FILE)
 
-# Scraps:
+try:
+    # Starting the Bot
+    bot.run(BOT_TOKEN)
+except KeyboardInterrupt:
+    pass
 
-# @client.command(pass_context=True)
-# async def points(context, method, points=0):
-#     # print(context.message.author.id)
-#     author = context.message.author
-#     print(author.id)
-#     print(method)
-#     if method == 'add':
-#         for entry in points_table:
-#             print(entry['id'])
-#             if entry['id'] == author.id:
-#                 entry['points'] += points
-#                 print(entry['points'])
-#                 await client.send_message(context.message.channel, entry['points'])
-#     elif method == 'show':
-#         for entry in points_table:
-#             if entry['id'] == author.id:
-#                 print(entry['points'])
-#                 await client.send_message(context.message.channel, entry['points'])
-# @client.event
-# async def on_message(message):
-#     if message.author == client.user:
-#         return
-#     await client.send_message(message.channel, 'Moin Moin')
 
-# @client.command(pass_context=True)
-# async def speak(ctx, *arg):
-#     # print(ctx.message)
-#     await client.send_message(ctx.message.channel, arg)
