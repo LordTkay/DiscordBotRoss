@@ -3,9 +3,10 @@ import logging
 import schedule
 import threading
 import time
+import asyncio
 from os import path, makedirs
 from discord.ext.commands import Bot, has_permissions, MissingPermissions
-from discord import Member, Embed, Color
+from discord import Member, Embed, Color, utils
 from typing import Union
 
 # Local Libraries
@@ -59,6 +60,30 @@ async def on_ready():
     logging.info('Bot logged in as \'{0.name}\' ({0.id})'.format(bot.user))
 
 
+# @bot.event
+# async def on_message(message):
+#     if message.content.startswith('$thumb'):
+#         channel = message.channel
+#         await channel.send('Send me that \N{THUMBS UP SIGN} reaction, mate')
+#
+#         def check(reaction, user):
+#             return user == message.author and str(reaction.emoji) == '\N{THUMBS UP SIGN}'
+#
+#         try:
+#             reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+#         except asyncio.TimeoutError:
+#             await channel.send('\N{THUMBS DOWN SIGN}')
+#         else:
+#             await channel.send('\N{THUMBS UP SIGN}')
+
+@bot.event
+async def on_message(message):
+    if len(message.attachments) > 0:
+        if 'png' in message.attachments[0].filename:
+            # em = utils.get(bot.emojis, name='eyes')
+            await message.add_reaction(('\N{THUMBS UP SIGN}'))
+
+
 @bot.command(aliases=['p'], pass_context=True)
 async def points(context, option, arg1: Union[Member, int] = None, arg2: Union[Member, int] = None):
     """This command is used to add, subtract, set or show points."""
@@ -77,7 +102,7 @@ async def points(context, option, arg1: Union[Member, int] = None, arg2: Union[M
             elif option == 'set':
                 point_system.set_points(target_user.id, arg1)
         else:
-            await context.channel.send('NOP!')
+            await context.channel.send('You don\'t have the permission for that {}'.format(target_user.mention))
 
     elif option == 'show':
         if arg1 is not None and isinstance(arg1, Member):
