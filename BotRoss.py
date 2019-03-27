@@ -81,7 +81,7 @@ async def on_message(message):
     if len(message.attachments) > 0:
         if 'png' in message.attachments[0].filename:
             # em = utils.get(bot.emojis, name='eyes')
-            await message.add_reaction(('\N{THUMBS UP SIGN}'))
+            await message.add_reaction('\N{THUMBS UP SIGN}')
 
 
 @bot.command(aliases=['p'], pass_context=True)
