@@ -4,7 +4,7 @@ import schedule
 import threading
 import time
 from os import path, makedirs
-from discord.ext.commands import Bot
+from discord.ext.commands import Bot, has_permissions, MissingPermissions
 from discord import Member, Embed, Color
 from typing import Union
 
@@ -31,6 +31,7 @@ point_system = PointSystem()
 
 
 def start_up(data_path, json_file):
+    """This function checks the required files and folder structures."""
     logging.info('Checking existence of directories and files:')
     # Checking Folder "Data", if it doesn't exists it gets created
     if not path.exists(data_path):
@@ -53,25 +54,30 @@ def start_up(data_path, json_file):
 
 @bot.event
 async def on_ready():
+    """This function is called after the Server started."""
     logging.info('Bot Client successfully started!')
     logging.info('Bot logged in as \'{0.name}\' ({0.id})'.format(bot.user))
 
 
-@bot.command(pass_context=True)
+@bot.command(aliases=['p'], pass_context=True)
 async def points(context, option, arg1: Union[Member, int] = None, arg2: Union[Member, int] = None):
+    """This command is used to add, subtract, set or show points."""
     target_user = context.message.author
 
     if option in ('add', 'sub', 'set'):
-        if arg2 is not None and isinstance(arg2, Member):
-            target_user = arg2
-        point_system.check_and_create_user(target_user)
+        if target_user.guild_permissions.administrator:
+            if arg2 is not None and isinstance(arg2, Member):
+                target_user = arg2
+            point_system.check_and_create_user(target_user)
 
-        if option == 'add':
-            point_system.add_points(target_user.id, arg1)
-        elif option == 'sub':
-            point_system.subtract_points(target_user.id, arg1)
-        elif option == 'set':
-            point_system.set_points(target_user.id, arg1)
+            if option == 'add':
+                point_system.add_points(target_user.id, arg1)
+            elif option == 'sub':
+                point_system.subtract_points(target_user.id, arg1)
+            elif option == 'set':
+                point_system.set_points(target_user.id, arg1)
+        else:
+            await context.channel.send('NOP!')
 
     elif option == 'show':
         if arg1 is not None and isinstance(arg1, Member):
@@ -83,6 +89,7 @@ async def points(context, option, arg1: Union[Member, int] = None, arg2: Union[M
         user_info.add_field(name='Points', value=user['points'])
 
         await context.channel.send(embed=user_info)
+
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Main
@@ -107,10 +114,8 @@ schedule.every(1).minutes.do(lambda: JSONHandler.save_json(JSON_FILE, point_syst
 
 point_system.dictionary = start_up(DATA_PATH, JSON_FILE)
 
-try:
-    # Starting the Bot
-    bot.run(BOT_TOKEN)
-except KeyboardInterrupt:
-    pass
+# Starting the Bot
+bot.run(BOT_TOKEN)
+
 
 
