@@ -1,9 +1,13 @@
 # External Libraries
 import logging
+
+import discord
 import schedule
 import threading
 import time
 import asyncio
+import mimetypes
+import re
 from os import path, makedirs
 from discord.ext.commands import Bot, has_permissions, MissingPermissions
 from discord import Member, Embed, Color, utils
@@ -52,36 +56,42 @@ def start_up(data_path, json_file):
 
 # Bot Functions
 
+# IF EMOJI BASED RATINGS SHOULD BE NEEDED ------------------------------------------------------------------------------
+# @bot.event
+# async def on_message(message):
+#     if len(message.attachments) > 0:
+#         if 'png' in message.attachments[0].filename:
+#             # em = utils.get(bot.emojis, name='eyes')
+#             await message.add_reaction('\N{THUMBS UP SIGN}')
+            # def check(reaction, user):
+            #     return user == message.author and str(reaction.emoji) == '\N{THUMBS UP SIGN}'
+            #
+            # try:
+            #     reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
+            # except asyncio.TimeoutError:
+            #     pass
+            # else:
+            #     await message.channel.send(message)
+            #     point_system.check_and_create_user(message.author)
+            #     point_system.add_points(message.author.id, 25)
+
+
+# @bot.event
+# async def on_raw_reaction_add(reaction):
+#     print(reaction.message_id)
+#     print(reaction.user_id)
+#     print(reaction.channel_id)
+#     print(reaction.guild_id)
+#     print(reaction.emoji)
+#     print()
+# ----------------------------------------------------------------------------------------------------------------------
+
 
 @bot.event
 async def on_ready():
     """This function is called after the Server started."""
     logging.info('Bot Client successfully started!')
     logging.info('Bot logged in as \'{0.name}\' ({0.id})'.format(bot.user))
-
-
-# @bot.event
-# async def on_message(message):
-#     if message.content.startswith('$thumb'):
-#         channel = message.channel
-#         await channel.send('Send me that \N{THUMBS UP SIGN} reaction, mate')
-#
-#         def check(reaction, user):
-#             return user == message.author and str(reaction.emoji) == '\N{THUMBS UP SIGN}'
-#
-#         try:
-#             reaction, user = await bot.wait_for('reaction_add', timeout=60.0, check=check)
-#         except asyncio.TimeoutError:
-#             await channel.send('\N{THUMBS DOWN SIGN}')
-#         else:
-#             await channel.send('\N{THUMBS UP SIGN}')
-
-@bot.event
-async def on_message(message):
-    if len(message.attachments) > 0:
-        if 'png' in message.attachments[0].filename:
-            # em = utils.get(bot.emojis, name='eyes')
-            await message.add_reaction('\N{THUMBS UP SIGN}')
 
 
 @bot.command(aliases=['p'], pass_context=True)
@@ -115,6 +125,33 @@ async def points(context, option, arg1: Union[Member, int] = None, arg2: Union[M
 
         await context.channel.send(embed=user_info)
 
+
+# @bot.event
+# async def on_message(message: discord.Message):
+#     if message.author == bot.user:
+#         return
+#
+#     image_posted = False
+#
+#     if len(message.attachments) > 0:
+#         for attachment in message.attachments:
+#             if 'image' in mimetypes.guess_type(attachment.filename)[0]:
+#                 image_posted = True
+#                 break
+#
+#     if len(message.embeds) > 0:
+#         for embed in message.embeds:
+#             if 'image' in mimetypes.guess_type(embed.thumbnail.url)[0]:
+#                 image_posted = True
+#                 break
+
+
+
+    # print('{} by {}'.format(image_posted, message.author.name))
+    # if image_posted:
+    #     await message.channel.send('Picture Uploaded by {}'.format(message.author.name))
+    # else:
+    #     await message.channel.send('NO Picture Uploaded by {}'.format(message.author.name))
 
 # ----------------------------------------------------------------------------------------------------------------------
 # Main
