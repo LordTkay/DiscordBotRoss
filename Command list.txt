@@ -1,0 +1,51 @@
+Version 1:
+
+[] = Value/Variable
+() = Optional
+/ = Or
+
+Discord Prefix = !
+
+Point System, Prefix = p, points
+-------------------------------------------------
+Adding points to a user
+- add [amount] @[user]
+Subtract points from a user
+- sub [amount] @[user]
+Setting the amount of points of a user
+- set [amount] @[user]
+Showing own points or of another user
+- show (@[user])
+
+
+Permissions, Prefix = perm or permission
+-------------------------------------------------
+Showing all permissions, all roles and their permissions or permissions of specific role
+- show permission/roles/@[discord role]
+Adding a permission to a discord role
+- add [permission] @[discord role]
+Removing a permission from a discord role
+- remove [permission] @[discord role]
+
+
+Roles, Prefix = role
+-------------------------------------------------
+Adding a role to the point based roles, which will be assigned after suprassing the minimum point level.
+True or False is to declare it as Ross Trial. So it won't be assigned automatically.
+- add @[discord role] [min point level] (true/false)
+Removing a role from the point based roles
+- remove @[discord role]
+Changing a existing point based role
+- edit @[discord role] [min point level] (true/false)
+Show a list of all point based roles inc. settings or just one specific
+- show (@[discord role])
+Show all user which are currently qualified to do a ross trial
+- trials show
+Approve a user, to upgrade him to the new role
+- trials approve @[user]
+
+
+Settings, Prefix = config
+-------------------------------------------------
+Setting the discord prefix to use Bot Ross
+- config prefix set [prefix]
